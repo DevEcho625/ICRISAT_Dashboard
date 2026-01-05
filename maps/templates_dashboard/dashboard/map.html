@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ICRISAT Field Dashboard</title>
+
+    <!-- Leaflet CSS -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            width: 260px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="info">
+    <h3>Field Data</h3>
+    <p>Click a field</p>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // Initialize map centered on ICRISAT, Hyderabad
+    var map = L.map('map').setView([17.3226, 78.1230], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+    }).addTo(map);
+
+    // Example field polygons (FAKE DATA)
+    var fields = [
+        {
+            id: 1,
+            coords: [
+                [17.3230, 78.1225],
+                [17.3230, 78.1235],
+                [17.3223, 78.1235],
+                [17.3223, 78.1225]
+            ]
+        },
+        {
+            id: 2,
+            coords: [
+                [17.3220, 78.1220],
+                [17.3220, 78.1230],
+                [17.3213, 78.1230],
+                [17.3213, 78.1220]
+            ]
+        }
+    ];
+
+    fields.forEach(field => {
+        var polygon = L.polygon(field.coords, { color: 'green' }).addTo(map);
+
+        polygon.on('click', function () {
+            fetch(`/dashboard/field/${field.id}/`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('info').innerHTML = `
+                        <h3>Field ${data.field_id}</h3>
+                        <b>Crop:</b> ${data.crop}<br>
+                        <b>Last Sown:</b> ${data.last_sown}<br>
+                        <b>Last Fertilized:</b> ${data.last_fertilized}<br>
+                        <b>Soil Moisture:</b> ${data.soil_moisture}<br>
+                        <b>Nitrogen:</b> ${data.nitrogen_level}<br>
+                        <b>Expected Yield:</b> ${data.expected_yield}
+                    `;
+                });
+        });
+    });
+</script>
+
+</body>
+</html>
