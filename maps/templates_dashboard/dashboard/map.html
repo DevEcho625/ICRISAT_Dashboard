@@ -46,37 +46,32 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Initialize map centered on ICRISAT, Hyderabad
-    var map = L.map('map').setView([17.3226, 78.1230], 15);
+    // Initialize map centered on requested coordinates
+    var map = L.map('map').setView([17.506988, 78.275083], 16);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19
     }).addTo(map);
 
-    // Example field polygons (FAKE DATA)
+    // Field polygons
     var fields = [
         {
             id: 1,
             coords: [
-                [17.3230, 78.1225],
-                [17.3230, 78.1235],
-                [17.3223, 78.1235],
-                [17.3223, 78.1225]
-            ]
-        },
-        {
-            id: 2,
-            coords: [
-                [17.3220, 78.1220],
-                [17.3220, 78.1230],
-                [17.3213, 78.1230],
-                [17.3213, 78.1220]
-            ]
+    [17.509585, 78.274073], // top-right
+    [17.509440, 78.271193], // top-left
+    [17.507621, 78.271265], // bottom-left
+    [17.507740, 78.274197]  // bottom-right
+]
+
         }
     ];
 
     fields.forEach(field => {
-        var polygon = L.polygon(field.coords, { color: 'green' }).addTo(map);
+        var polygon = L.polygon(field.coords, {
+            color: 'green',
+            fillOpacity: 0.5
+        }).addTo(map);
 
         polygon.on('click', function () {
             fetch(`/dashboard/field/${field.id}/`)
