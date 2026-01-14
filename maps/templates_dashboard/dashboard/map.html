@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ICRISAT Field Dashboard</title>
+    <title>ICRISAT Field Map</title>
     <meta charset="utf-8" />
 
-    <!-- Leaflet CSS -->
     <link
         rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -26,42 +25,20 @@
             top: 10px;
             right: 10px;
             background: white;
-            padding: 12px;
+            padding: 14px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            width: 260px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.25);
+            width: 280px;
             z-index: 1000;
+            font-size: 14px;
         }
 
-        #coords {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            box-shadow: 0 0 6px rgba(0,0,0,0.2);
-            z-index: 1000;
-            min-width: 220px;
-        }
-
-        #coords button {
-            margin: 6px 0;
-            padding: 4px 8px;
-            font-size: 12px;
-            cursor: pointer;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            background: #f5f5f5;
+        #info h3 {
+            margin-top: 0;
         }
 
         .label {
             font-weight: bold;
-        }
-
-        .value {
-            font-family: monospace;
         }
     </style>
 </head>
@@ -70,26 +47,10 @@
 <div id="map"></div>
 
 <div id="info">
-    <h3>Field Data</h3>
+    <h3>Field Info</h3>
     <p>Click a field</p>
 </div>
 
-<!-- Coordinate Panel -->
-<div id="coords">
-    <div>
-        <span class="label">Hover:</span>
-        <span id="hoverCoords" class="value">–, –</span>
-    </div>
-
-    <button id="copyBtn">Copy Selected</button>
-
-    <div>
-        <span class="label">Selected:</span>
-        <span id="selectedCoords" class="value">–, –</span>
-    </div>
-</div>
-
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
@@ -100,271 +61,74 @@
         maxZoom: 19
     }).addTo(map);
 
-    let selectedLat = null;
-    let selectedLng = null;
+    // Load GeoJSON fields
+    fetch("/dashboard/fields/")
+        .then(response => response.json())
+        .then(geojsonData => {
 
-    // Hover preview
-    map.on('mousemove', function (e) {
-        document.getElementById('hoverCoords').textContent =
-            `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
-    });
+            var fieldLayer = L.geoJSON(geojsonData, {
+                style: {
+                    color: "black",
+                    weight: 1.5,
+                    fillColor: "#00cfff",
+                    fillOpacity: 0.5
+                },
 
-    // Lock coordinates on click
-    map.on('click', function (e) {
-        selectedLat = e.latlng.lat.toFixed(6);
-        selectedLng = e.latlng.lng.toFixed(6);
+                onEachFeature: function (feature, layer) {
+    const fieldNo = feature.properties.Field_no_j;
 
-        document.getElementById('selectedCoords').textContent =
-            `${selectedLat}, ${selectedLng}`;
-    });
+    layer.on("click", function () {
 
-    // Copy selected coordinates
-    document.getElementById('copyBtn').addEventListener('click', function () {
-        if (!selectedLat || !selectedLng) {
-            alert("Click on the map to select coordinates first");
-            return;
-        }
+        document.getElementById("info").innerHTML = `
+            <h3>Field ${fieldNo}</h3>
+            <p>Loading data…</p>
+        `;
 
-        navigator.clipboard.writeText(`${selectedLat}, ${selectedLng}`);
-    });
+        // IMPORTANT: encode spaces + hyphens
+        const encodedFieldNo = encodeURIComponent(fieldNo);
 
-    // Field polygons
-    var fields = [
-        {
-            id: 1,
-            coords: [
-                [17.509448, 78.270909],
-                [17.509458, 78.272127],
-                [17.507495, 78.272202],
-                [17.507441, 78.271006]
-            ]
-        },
-        {
-            id: 2,
-            coords: [
-                [17.509468, 78.272135],
-                [17.509494, 78.273114],
-                [17.507536, 78.273205],
-                [17.507490, 78.272210]
-            ]
-        },
-        {
-            id: 3,
-            coords: [
-                [17.509497, 78.273114],
-                [17.509512, 78.274149],
-                [17.507551, 78.274243],
-                [17.507526, 78.273213]
-            ]
-        },
-        {
-            id: 4,
-            coords: [
-                [17.509518, 78.274147],
-                [17.509556, 78.275163],
-                [17.507586, 78.275268],
-                [17.507568, 78.274238]
-            ]
-        },
-        {
-            id:5,
-            coords: [
-                [17.509538, 78.275174],
-                [17.509566, 78.276212],
-                [17.507626, 78.276295],
-                [17.507598, 78.275270]
-            ]
-        }, 
+        fetch(`/dashboard/field-details/${encodedFieldNo}/`)
+            .then(res => res.json())
+            .then(data => {
 
-        {
-            id:6,
-            coords: [
-                [17.509568, 78.276220],
-                [17.509597, 78.277322],
-                [17.507667, 78.277448],
-                [17.507618, 78.276292]
-            ]
-        },
-        {
-            id: 7,
-            coords:[
-                [17.509598, 78.277325],
-                [17.509626, 78.278406],
-                [17.507692, 78.278508],
-                [17.507658, 78.277443]
-            ]
-        },
-        {
-            id: 8,
-            coords: [
-                [17.509630, 78.278410],
-                [17.509650, 78.279404],
-                [17.507746, 78.279495],
-                [17.507699, 78.278514]
-            ]
-        },
-        {
-            id: 9,
-            coords: [
-                [17.509637, 78.279406],
-                [17.509676, 78.280511],
-                [17.507753, 78.280568],
-                [17.507743, 78.279498]
-            ]
-        },
-        {
-            id: 10,
-            coords: [
-                [17.507394, 78.271006],
-                [17.507445, 78.272213],
-                [17.505564, 78.272264],
-                [17.505536, 78.271086]
-            ]
-        }, {
-            id: 11,
-            coords: [
-                [17.507447, 78.272210],
-                [17.507469, 78.273205],
-                [17.505605, 78.273275],
-                [17.505571, 78.272272]
-            ]
-        },
-        {
-            id: 12,
-            coords: [
-                [17.507473, 78.273202],
-                [17.507514, 78.274227],
-                [17.505631, 78.274305],
-                [17.505605, 78.273275]
-            ]
-        },
-        {
-            id: 13,
-            coords: [
-                [17.507514, 78.274227],
-                [17.507550, 78.275260],
-                [17.505669, 78.275362],
-                [17.505631, 78.274305]
-            ]
-        },
-        {
-            id:14,
-            coords: [
-                [17.507550, 78.275260],
-                [17.507583, 78.276284],
-                [17.505720, 78.276384],
-                [17.505669, 78.275362]
-            ]
-        },
-        {
-            id: 15,
-            coords: [
-                [17.507583, 78.276284],
-                [17.507621, 78.277435],
-                [17.505732, 78.277467],
-                [17.505720, 78.276384]
-            ]
-        }, 
-        {
-            id: 16,
-            coords: [
-                [17.507621, 78.277435],
-                [17.507657, 78.278503],
-                [17.505763, 78.278537],
-                [17.505732, 78.277467]
-            ]
-        },
-        {
-            id: 17,
-            coords: [
-                [17.507657, 78.278503],
-                [17.507691, 78.279495],
-                [17.505789, 78.279519],
-                [17.505763, 78.278537]
-            ]
-        },
-        {  
-            id: 18,
-            coords: [
-                [17.507691, 78.279495],
-                [17.507713, 78.280568],
-                [17.505824, 78.280627],
-                [17.505789, 78.279519]
-            ]
-        }
-        ,
-        {
-            id: 19, //Residential Area
-            coords: [
-                [17.509483, 78.270912],
-                [17.514353, 78.270797],
-                [17.513942, 78.272610],
-                [17.513599, 78.273669],
-                [17.513596, 78.278698],
-                [17.513456, 78.279954],
-                [17.513412, 78.280906],
-                [17.512307, 78.280517],
-                [17.511404, 78.280549],
-                [17.509741, 78.280506],
-                [17.509604, 78.275552],
-                [17.509505, 78.271392]
-            ]
-        },
-        {
-            id: 20, //School
-            coords: [
-                [17.513926, 78.281104],
-                [17.513939, 78.282341],
-                [17.512831, 78.282368],
-                [17.512657, 78.282802],
-                [17.511354, 78.282252],
-                [17.511422, 78.280589],
-                [17.512286, 78.280546],
-                [17.513404, 78.280925]
-                
-            ]
-        }
-        ,{
-            id: 21,
-            coords: [
-                [17.511405, 78.280589],
-                [17.511341, 78.281697],
-                [17.510619, 78.281190],
-                [17.510665, 78.280866],
-                [17.510747, 78.280573],
-                [17.511005, 78.280573]
-            ]
-        }
-
-
-
-    ];
-
-    fields.forEach(field => {
-        var polygon = L.polygon(field.coords, {
-            color: 'black',
-            weight:2,
-            fillColor: 'cyan',
-
-            fillOpacity: 0.5
-        }).addTo(map);
-
-        polygon.on('click', function () {
-            fetch(`/dashboard/field/${field.id}/`)
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('info').innerHTML = `
-                        <h3>Field ${data.field_id}</h3>
-                        <b>Crop:</b> ${data.crop}<br>
-                        <b>Last Sown:</b> ${data.last_sown}<br>
-                        <b>Last Fertilized:</b> ${data.last_fertilized}<br>
-                        <b>Soil Moisture:</b> ${data.soil_moisture}<br>
-                        <b>Nitrogen:</b> ${data.nitrogen_level}<br>
-                        <b>Expected Yield:</b> ${data.expected_yield}
+                if (data.error) {
+                    document.getElementById("info").innerHTML = `
+                        <h3>Field ${fieldNo}</h3>
+                        <p>No spreadsheet data found</p>
                     `;
-                });
-        });
+                    return;
+                }
+
+                document.getElementById("info").innerHTML = `
+                    <h3>Field ${data.FIELDNO}</h3>
+
+                    <div><span class="label">REQ No:</span> ${data.REQNO}</div>
+                    <div><span class="label">Date PTD:</span> ${data.DATEPTD}</div>
+                    <div><span class="label">Plant Date:</span> ${data.PLANTDATE}</div>
+                    <div><span class="label">Harvest Date:</span> ${data.HARVESTDAT}</div>
+                    <div><span class="label">Actual Planting:</span> ${data.ACTUALPDAT}</div>
+                    <div><span class="label">Experiment:</span> ${data.EXPDETAIL}</div>
+                    <div><span class="label">Pest:</span> ${data.PESTNAME}</div>
+                    <div><span class="label">Herbicide:</span> ${data.HERBNAME}</div>
+                `;
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById("info").innerHTML = `
+                    <h3>Field ${fieldNo}</h3>
+                    <p>Error loading spreadsheet data</p>
+                `;
+            });
     });
+}
+
+            }).addTo(map);
+
+            map.fitBounds(fieldLayer.getBounds());
+        })
+        .catch(err => {
+            console.error("Failed to load GeoJSON:", err);
+        });
 </script>
 
 </body>

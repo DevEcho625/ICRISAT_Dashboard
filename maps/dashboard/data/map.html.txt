@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ICRISAT Field Map</title>
+    <meta charset="utf-8" />
+
+    <!-- Leaflet CSS -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            width: 220px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="info">
+    <h3>Field Info</h3>
+    <p>Click a field</p>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // Initialize map
+    var map = L.map('map').setView([17.506988, 78.275083], 16);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+    }).addTo(map);
+
+    // Load GeoJSON fields from Django
+    fetch("/dashboard/fields/")
+        .then(response => response.json())
+        .then(geojsonData => {
+
+            var fieldLayer = L.geoJSON(geojsonData, {
+                style: {
+                    color: "black",
+                    weight: 1.5,
+                    fillColor: "#00cfff",
+                    fillOpacity: 0.5
+                },
+
+                onEachFeature: function (feature, layer) {
+                    const fieldId = feature.properties.Feild_no_j;
+
+                    layer.on("click", function () {
+                        document.getElementById("info").innerHTML = `
+                            <h3>Field ${fieldId}</h3>
+                            <p>ID from GeoJSON</p>
+                        `;
+                    });
+                }
+            }).addTo(map);
+
+            // Zoom map to all fields
+            map.fitBounds(fieldLayer.getBounds());
+        })
+        .catch(err => {
+            console.error("Failed to load GeoJSON:", err);
+        });
+</script>
+
+</body>
+</html>
