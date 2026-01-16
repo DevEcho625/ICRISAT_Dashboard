@@ -2,33 +2,42 @@
 # Create your views here.
 from django.shortcuts import render
 from django.http import JsonResponse
-import random
 from datetime import date, timedelta
 from pathlib import Path
-import json
 from django.conf import settings
-import pandas as pd
 from django.http import JsonResponse
 from pathlib import Path
 from django.conf import settings
 
+import logging
+import pandas as pd
+import random
+import json
 
+logger = logging.getLogger(__name__)
 
 EXCEL_PATH = Path(settings.BASE_DIR) / "dashboard" / "data" / "FLDREQ2013.xlsx"
 
 def load_excel():
-    path = Path(settings.BASE_DIR) / "dashboard" / "data" / "FLDREQ2013.xlsx"
-    return pd.read_excel(path)
+    logging.info('In load_excel')
+    xlfstr = pd.read_excel(EXCEL_PATH).to_json(orient='records')
+    values = json.loads(xlfstr)
+    # convert array to dictionary based on field no
+    field_info = {}
+    for val in values:
+        field_info[val["FIELDNO"]] = val
+        logging.info("Got field: {}".format(val["FIELDNO"]))
+    return field_info
 
-df = load_excel()
+FIELD_INFO = load_excel()
 
 
 # Normalize column names (important)
-df.columns = df.columns.str.strip()
 def map_view(request):
     return render(request, "dashboard/map.html")
 
 def field_data(request, field_id):
+    logging.info('In field_data')
     crops = ["Sorghum", "Millet", "Chickpea", "Maize", "Pigeon Pea"]
 
     data = {
@@ -44,6 +53,7 @@ def field_data(request, field_id):
     return JsonResponse(data)
 
 def fields_geojson(request):
+    logging.info('In fields_geojson')
     geojson_path = Path(settings.BASE_DIR) / "dashboard" / "data" / "final.json"
 
     with open(geojson_path) as f:
@@ -52,35 +62,19 @@ def fields_geojson(request):
     return JsonResponse(data)
 
 def map_view(request):
+    logging.info('In map_view')
     return render(request, "dashboard/map.html")
 
 
 def field_details(request, field_no):
-    # Normalize spreadsheet FIELDNO
-    df["FIELDNO"] = df["FIELDNO"].astype(str).str.strip()
-
-    # Normalize incoming value
-    field_no = str(field_no).strip()
-
-    row = df[df["FIELDNO"] == field_no]
-
-    if row.empty:
+    logging.info('In Field Details for {}'.format(field_no))
+    if field_no not in FIELD_INFO:
+        logging.info("Field {} not found".format(field_no))
         return JsonResponse({
             "error": "Field not found",
             "requested": field_no,
-            "available_sample": df["FIELDNO"].head(10).tolist()
         })
+    row = FIELD_INFO[field_no]
+    logging.info("Got field info: {}".format(row))
+    return JsonResponse(row)
 
-    row = row.iloc[0]
-
-    return JsonResponse({
-        "FIELDNO": row["FIELDNO"],
-        "REQNO": row.get("REQNO", ""),
-        "DATEPTD": str(row.get("DATEPTD", "")),
-        "PLANTDATE": str(row.get("PLANTDATE", "")),
-        "HARVESTDAT": str(row.get("HARVESTDAT", "")),
-        "ACTUALPDAT": str(row.get("ACTUALPDAT", "")),
-        "EXPDETAIL": row.get("EXPDETAIL", ""),
-        "PESTNAME": row.get("PESTNAME", ""),
-        "HERBNAME": row.get("HERBNAME", "")
-    })
