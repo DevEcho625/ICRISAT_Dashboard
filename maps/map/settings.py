@@ -22,9 +22,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-_&c0dn)(y$o!qxhh9af5yau=!^hhdqdc+r4pz)*&4!c67c6-*1'
+#SECRET_KEY = 'django-insecure-_&c0dn)(y$o!qxhh9af5yau=!^hhdqdc+r4pz)*&4!c67c6-*1'
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", default="1a2b3c2b1a")
 
 # SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = bool(os.environ.get("DEBUG", default=0))
 #DEBUG = True
 
 ALLOWED_HOSTS = ['*']
@@ -34,25 +36,27 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            # Use an absolute path for reliability
-            'filename': os.path.join(BASE_DIR, 'django_debug.log'), 
+#        'file': {
+#            'level': 'DEBUG',
+#            'class': 'logging.FileHandler',
+#            # Use an absolute path for reliability
+#            'filename': os.path.join(BASE_DIR, 'django_debug.log'), 
+#        },
+        'console': {
+            'class': 'logging.StreamHandler', # This directs logs to stdout/stderr
         },
     },
     'loggers': {
         # The 'django' logger captures logs from the Django framework itself
         'django': {
-            'handlers': ['file'],
-            'level': 'INFO',
+            'handlers': ['console'],
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
             'propagate': True,
         },
         # You can also add a logger for your specific app(s)
         '': {
-            'handlers': ['file'],
-            'level': 'DEBUG', # Use 'INFO' or 'WARNING' for production
-            'propagate': True,
+            'handlers': ['console'],
+            'level': 'INFO', # Use 'INFO' or 'WARNING' for production
         },
     },
 }

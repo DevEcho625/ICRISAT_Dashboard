@@ -1,2 +1,4 @@
 *.pyc
 *~
+maps/django_debug.log
+
